@@ -74,18 +74,19 @@ HiChat.prototype = {
     //send message
     document.getElementById('sendBtn').addEventListener('click', function () {
       var messageInput = document.getElementById('messageInput'),
-        msg = messageInput.value;
+        msg = messageInput.value,
+        color = document.getElementById('colorStyle').value;
       messageInput.value = '';
       messageInput.focus();
       if (msg.trim().length != 0) {
-        that.socket.emit('postMsg', msg); //send message to server
-        that.displayNewMsg('me', msg);   //show message for myself
+        that.socket.emit('postMsg', msg, color); //send message to server
+        that.displayNewMsg('me', msg, color);   //show message for myself
       };
     }, false);
 
     //show broadcasted message
-    this.socket.on('newMsg', function (user, msg) {
-      that.displayNewMsg(user, msg);
+    this.socket.on('newMsg', function (user, msg, color) {
+      that.displayNewMsg(user, msg, color);
     });
 
 
@@ -122,6 +123,7 @@ HiChat.prototype = {
       emojiwrapper.style.display = 'block';
       e.stopPropagation();
     }, false);
+
     document.body.addEventListener('click', function (e) {
       var emojiwrapper = document.getElementById('emojiWrapper');
       if (e.target != emojiwrapper) {
@@ -139,6 +141,11 @@ HiChat.prototype = {
       };
     }, false);
 
+    document.getElementById('clearBtn').addEventListener('click', function (e) {
+      //clear screen
+      that.clearScreen();
+    }, false);
+
   },
 
   //show message
@@ -146,7 +153,7 @@ HiChat.prototype = {
     var container = document.getElementById('historyMsg'),
          msgToDisplay = document.createElement('p'),
          date = new Date().toTimeString().substr(0, 8),
-         //change to image
+    //change to image
          msg = this.showEmoji(msg);
     msgToDisplay.style.color = color || '#000';
     msgToDisplay.innerHTML = user + '<span class="timespan">(' + date + '): </span>' + msg;
@@ -192,6 +199,15 @@ HiChat.prototype = {
       };
     };
     return result;
+  },
+
+  clearScreen: function () {
+    var parent = document.getElementById("historyMsg");
+    var children = parent.childNodes;
+    for (var i = children.length - 1; i >= 0; i--) {
+      parent.removeChild(children[i]);
+    }
   }
+
 
 };

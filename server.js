@@ -38,9 +38,9 @@ io.on("connection", function (socket) {
   });
 
   //get message sent by user
-  socket.on('postMsg', function (msg) {
+  socket.on('postMsg', function (msg, color) {
     //send message to all users except the message sender
-    socket.broadcast.emit('newMsg', socket.nickname, msg);
+    socket.broadcast.emit('newMsg', socket.nickname, msg, color);
   });
 
   //get posted image
