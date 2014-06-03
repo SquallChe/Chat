@@ -18,14 +18,28 @@ io.on("connection", function (socket) {
 
   //set nickname
   socket.on("login", function (nickname) {
-    if (users.indexOf(nickname) > -1) {
+    var exsist = false;
+    for (var i = 0; i < users.length; i++) {
+      if (users[i].nickname == nickname) {
+        exsist = true;
+        break;
+      }
+    }
+
+    if (exsist) {
+      //if (users.indexOf(nickname) > -1) {
       socket.emit("nickExisted");
-    } else {
+    }
+    else {
+      if (socket.iconIndex == undefined)
+        socket.iconIndex = '0';
+
       socket.userIndex = users.length;
+      //users.push(nickname);      
+      users.push({ "nickname": nickname, "iconIndex": socket.iconIndex });
       socket.nickname = nickname;
-      users.push(nickname);
       socket.emit("loginSuccess");
-      io.sockets.emit("system", nickname, users.length, "login"); //send nicknames to all users who current online
+      io.sockets.emit("system", nickname, users, "login"); //send nicknames to all users who current online
     };
   });
 
@@ -40,13 +54,19 @@ io.on("connection", function (socket) {
   //get message sent by user
   socket.on('postMsg', function (msg, color) {
     //send message to all users except the message sender
-    socket.broadcast.emit('newMsg', socket.nickname, msg, color);
+    //socket.broadcast.emit('newMsg', socket.nickname, msg, color, socket.iconIndex);
+    io.sockets.emit('newMsg', socket.nickname, msg, color, socket.iconIndex);
   });
 
   //get posted image
   socket.on('img', function (imgData) {
     //send to users except the sender
     socket.broadcast.emit('newImg', socket.nickname, imgData);
+  });
+
+  //icon
+  socket.on('selectIcon', function (iconIndex) {
+    socket.iconIndex = iconIndex;
   });
 
 });

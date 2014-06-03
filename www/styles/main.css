@@ -25,6 +25,14 @@ html, body {
 #nickWrapper {
     display: none;
 }
+#headIcon {
+    display: none;
+    margin-top:20px;
+}
+#divSelected {
+  display: none;
+  margin-top:20px;
+}
 .banner {
     height: 80px;
     width: 100%;
@@ -43,6 +51,7 @@ html, body {
     background-color: #fff;
     overflow: auto;
     padding: 2px;
+    /*background-image:url(../content/bg/bg1.jpg);*/
 }
 #historyMsg img {
     max-width: 99%;
@@ -105,4 +114,46 @@ html, body {
 }
 footer {
     text-align: center;
+}
+
+
+#bgWrapper {
+    display: none;
+    width: 500px;
+    bottom: 105px;
+    position: absolute;
+    background-color: #aaa;
+    box-shadow: 0 0 10px #555;
+}
+#bgWrapper img {
+    margin: 2px;
+    padding: 2px;
+    width:100px;
+    height:100px;
+}
+
+.draggable
+{
+  width:150px;
+  height:600px;
+  border:3px solid green;
+  display:none;
+  position:absolute;
+  background-color:White;
+  top:100px;
+  left:200px;
+}
+
+ul
+{
+  margin:0px;
+  padding:0px;
+}
+
+li
+{
+  margin-top:10px;
+  margin-left:10px;
+  padding:0px;
+  list-style-type:none;
 }

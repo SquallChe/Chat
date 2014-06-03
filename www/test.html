@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+    <head>
+      <script src="scripts/jquery-1.9.1.js" type="text/javascript"></script>
+      <script type="text/javascript">
+        $(function () {
+          $("#test").click(function () {
+            alert($("#ulSelf").text());
+          });
+        });
+      </script>
+    </head>
+    <body>
+      <div onclick="alert('ok');">Å£show</div>
+      <ul id="ulSelf">
+        <li>
+          <img src="../content/headIcon/0.gif" style="width: 40px; height: 40px;">aaa
+        </li>
+        <li>
+          <img src="../content/headIcon/0.gif" style="width: 40px; height: 40px;">a
+        </li>
+       </ul>
+
+       <br /><br /><br /><br />
+       <input id="test" type="button" value="test" />
+    </body>
+</html>

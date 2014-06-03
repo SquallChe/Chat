@@ -31,15 +31,17 @@ HiChat.prototype = {
       document.getElementById('info').textContent = 'get yourself a nickname :)';
       document.getElementById('nickWrapper').style.display = 'block';
       document.getElementById('nicknameInput').focus();
+      document.getElementById('headIcon').style.display = 'block';
+      document.getElementById('divSelected').style.display = 'block';
     });
 
     //nickname invalid
     this.socket.on('nickExisted', function () {
-      document.getElementById('info').textContent = 'Invalid nickname!';
+      document.getElementById('info').textContent = 'Nickname already existed..';
     });
 
     //success
-    this.socket.on('loginSuccess', function () {
+    this.socket.on('loginSuccess', function (iconIndex) {
       document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
       document.getElementById('loginWrapper').style.display = 'none';
       document.getElementById('messageInput').focus();
@@ -59,7 +61,8 @@ HiChat.prototype = {
     }, false);
 
     //join or left
-    this.socket.on('system', function (nickName, userCount, type) {
+    this.socket.on('system', function (nickName, users, type) {
+      var userCount = users.length;
       var msg = nickName + (type == 'login' ? ' joined' : ' left');
 
       //      var p = document.createElement('p');
@@ -67,8 +70,9 @@ HiChat.prototype = {
       //      document.getElementById('historyMsg').appendChild(p);
       that.displayNewMsg('system', msg, "red");
 
-      //show online number
+      //show x number
       document.getElementById('status').textContent = userCount + (userCount > 1 ? ' users' : ' user') + ' online';
+      that.initPanel(users);
     });
 
     //send message
@@ -80,13 +84,13 @@ HiChat.prototype = {
       messageInput.focus();
       if (msg.trim().length != 0) {
         that.socket.emit('postMsg', msg, color); //send message to server
-        that.displayNewMsg('me', msg, color);   //show message for myself
+        //that.displayNewMsg('me', msg, color);   //show message for myself
       };
     }, false);
 
     //show broadcasted message
-    this.socket.on('newMsg', function (user, msg, color) {
-      that.displayNewMsg(user, msg, color);
+    this.socket.on('newMsg', function (user, msg, color, iconIndex) {
+      that.displayNewMsg(user, msg, color, iconIndex);
     });
 
 
@@ -126,8 +130,12 @@ HiChat.prototype = {
 
     document.body.addEventListener('click', function (e) {
       var emojiwrapper = document.getElementById('emojiWrapper');
+      var bgwrapper = document.getElementById('bgWrapper');
       if (e.target != emojiwrapper) {
         emojiwrapper.style.display = 'none';
+      };
+      if (e.target != bgwrapper) {
+        bgwrapper.style.display = 'none';
       };
     });
 
@@ -146,17 +154,60 @@ HiChat.prototype = {
       that.clearScreen();
     }, false);
 
+    that.initialHeadIcon();
+
+    document.getElementById('headIcon').addEventListener('click', function (e) {
+      //get selected head
+      var target = e.target;
+      if (target.nodeName.toLowerCase() == 'img') {
+        that.socket.emit('selectIcon', target.title);
+        document.getElementById('imgSelected').src = target.src;
+      };
+    }, false);
+
+    //background
+    that.initialBg();
+    document.getElementById('btnBg').addEventListener('click', function (e) {
+      var bgWrapper = document.getElementById('bgWrapper');
+      bgWrapper.style.display = 'block';
+      e.stopPropagation();
+    }, false);
+
+    document.getElementById('bgWrapper').addEventListener('click', function (e) {
+      //get selected emoji
+      var target = e.target;
+      if (target.nodeName.toLowerCase() == 'img') {
+        var messageInput = document.getElementById('messageInput');
+        messageInput.focus();
+        $('#historyMsg').css('background-image', 'url(content/bg/bg' + target.title + '.gif)');
+      };
+    }, false);
+
+    $('.draggable').draggable();
+    $('#btnPanel').click(function () {
+      $('.draggable').toggle(500, function () {
+        if ($('.draggable').css('display') == 'none')
+          $('#btnPanel').val('show panel');
+        else
+          $('#btnPanel').val('hide panel');
+      });
+
+    });
+
   },
 
   //show message
-  displayNewMsg: function (user, msg, color) {
+  displayNewMsg: function (user, msg, color, iconIndex) {
     var container = document.getElementById('historyMsg'),
          msgToDisplay = document.createElement('p'),
          date = new Date().toTimeString().substr(0, 8),
     //change to image
          msg = this.showEmoji(msg);
     msgToDisplay.style.color = color || '#000';
-    msgToDisplay.innerHTML = user + '<span class="timespan">(' + date + '): </span>' + msg;
+    if (iconIndex != undefined)
+      msgToDisplay.innerHTML = '<img src="../content/headIcon/' + iconIndex + '.gif" style="width:40px;height:40px;">' + user + '<span class="timespan">(' + date + '): </span>' + msg;
+    else
+      msgToDisplay.innerHTML = user + '<span class="timespan">(' + date + '): </span>' + msg;
     container.appendChild(msgToDisplay);
     container.scrollTop = container.scrollHeight;
   },
@@ -185,6 +236,22 @@ HiChat.prototype = {
     emojiContainer.appendChild(docFragment);
   },
 
+  //initialize head icon
+  initialHeadIcon: function () {
+    var iconContainer = document.getElementById('headIcon'),
+        docFragment = document.createDocumentFragment();
+    for (var i = 7; i > 0; i--) {
+      var iconItem = document.createElement('img');
+      iconItem.src = '../content/headIcon/' + i + '.gif';
+      iconItem.title = i;
+      iconItem.width = 50;
+      iconItem.height = 50;
+      iconItem.style.cursor = 'pointer';
+      docFragment.appendChild(iconItem);
+    }
+    iconContainer.appendChild(docFragment);
+  },
+
   showEmoji: function (msg) {
     var match, result = msg,
         reg = /\[emoji:\d+\]/g,
@@ -207,7 +274,27 @@ HiChat.prototype = {
     for (var i = children.length - 1; i >= 0; i--) {
       parent.removeChild(children[i]);
     }
+  },
+
+  //initialize bg
+  initialBg: function () {
+    var bgContainer = document.getElementById('bgWrapper'),
+        docFragment = document.createDocumentFragment();
+    for (var i = 2; i > 0; i--) {
+      var bgItem = document.createElement('img');
+      bgItem.src = '../content/bg/bg' + i + '.gif';
+      bgItem.title = i;
+      docFragment.appendChild(bgItem);
+    }
+    bgContainer.appendChild(docFragment);
+  },
+
+  initPanel: function (users) {
+    var content = '<ul id="ulSelf">me';
+    for (var i = 0; i < users.length; i++) {
+      content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
+    }
+    content += '</ul>';
+    $('#userPanel').html(content);
   }
-
-
 };
