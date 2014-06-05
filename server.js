@@ -42,7 +42,6 @@ io.on("connection", function (socket) {
       io.sockets.emit("system", nickname, users, "login"); //send nicknames to all users who current online
 
       objSockets[socket.id] = socket;
-      console.log(objSockets);
     };
   });
 
@@ -81,8 +80,9 @@ io.on("connection", function (socket) {
   });
 
   //test
-  socket.on('message', function (msg) {
-    console.log(msg);
+  socket.on('test', function (fromId,toId) {
+      console.log("from:" + fromId);
+      console.log("to:" + toId);
   });
 
 });

@@ -182,6 +182,18 @@ HiChat.prototype = {
       };
     }, false);
 
+    //add panel click
+    document.getElementById('userPanel').addEventListener('dblclick', function (e) {
+        //get selected head
+        var target = e.target;
+        if (target.nodeName.toLowerCase() == 'img') {
+            that.createWindow(target.name, target.src);
+
+
+            //that.socket.emit('test', that.userId, target.name);
+        };
+    }, false);
+
     $('.draggable').draggable();
     $('#btnPanel').click(function () {
       $('.draggable').toggle(500, function () {
@@ -239,7 +251,7 @@ HiChat.prototype = {
   initialHeadIcon: function () {
     var iconContainer = document.getElementById('headIcon'),
         docFragment = document.createDocumentFragment();
-    for (var i = 0; i > 0; i--) {
+    for (var i = 7; i > 0; i--) {
       var iconItem = document.createElement('img');
       iconItem.src = '../content/headIcon/' + i + '.gif';
       iconItem.title = i;
@@ -291,16 +303,24 @@ HiChat.prototype = {
   initPanel: function (users, socket) {
     var content = '<ul id="ulOnline">';
     for (var i = 0; i < users.length; i++) {
-      if (users[i].userId != this.userId)
-      //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
-        content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(' + socket + ');">' + users[i].nickname + '</li>';
+        if (users[i].userId != this.userId)
+            //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
+            content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
     }
     content += '</ul>';
     $('#userPanel').html(content);
+  },
+
+  createWindow: function (id, imgSrc) {
+      if ($('#' + id).length == 0) {
+          $('body').append('<div id="' + id + '" class="subWin"><div id="subHeader"><img src="' + imgSrc + '" width="50" height="50"/></div><div id="subMessage"></div><div id="divSend"><textarea id="privateInput"/><br><input id="subSend" type="button" value="send"/></div></div>');
+          $('#' + id).draggable();
+      }
   }
 
 };
 
-function sendPrivateMsg(socket) {
-  socket.send("hello");
-}
+//function sendPrivateMsg() {
+//    //socket.send("hello");
+//    socket.emit("test", "hello world!!!");
+//}
