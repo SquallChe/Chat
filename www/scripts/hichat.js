@@ -1,7 +1,7 @@
 window.onload = function () {
   var hichat = new HiChat();
   hichat.init();
-
+  
   window.onkeypress = function () {
     if (window.event.keyCode == 13) {
       document.getElementById("sendBtn").click();
@@ -13,6 +13,7 @@ window.onload = function () {
 //definate chat class
 var HiChat = function () {
   this.socket = null;
+  this.userId = '';
 };
 
 //function HiChat() { 
@@ -28,7 +29,7 @@ HiChat.prototype = {
     //listen connect event
     this.socket.on('connect', function () {
       //when connected ,show input area
-      document.getElementById('info').textContent = 'get yourself a nickname :)';
+      document.getElementById('info').textContent = 'please input nickname';
       document.getElementById('nickWrapper').style.display = 'block';
       document.getElementById('nicknameInput').focus();
       document.getElementById('headIcon').style.display = 'block';
@@ -41,10 +42,11 @@ HiChat.prototype = {
     });
 
     //success
-    this.socket.on('loginSuccess', function (iconIndex) {
+    this.socket.on('loginSuccess', function (userId) {
       document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
       document.getElementById('loginWrapper').style.display = 'none';
       document.getElementById('messageInput').focus();
+      that.userId = userId;
     });
 
     //set confirm button for nickname
@@ -65,14 +67,11 @@ HiChat.prototype = {
       var userCount = users.length;
       var msg = nickName + (type == 'login' ? ' joined' : ' left');
 
-      //      var p = document.createElement('p');
-      //      p.textContent = msg;
-      //      document.getElementById('historyMsg').appendChild(p);
       that.displayNewMsg('system', msg, "red");
 
       //show x number
       document.getElementById('status').textContent = userCount + (userCount > 1 ? ' users' : ' user') + ' online';
-      that.initPanel(users);
+      that.initPanel(users, that.socket);
     });
 
     //send message
@@ -240,7 +239,7 @@ HiChat.prototype = {
   initialHeadIcon: function () {
     var iconContainer = document.getElementById('headIcon'),
         docFragment = document.createDocumentFragment();
-    for (var i = 7; i > 0; i--) {
+    for (var i = 0; i > 0; i--) {
       var iconItem = document.createElement('img');
       iconItem.src = '../content/headIcon/' + i + '.gif';
       iconItem.title = i;
@@ -289,12 +288,19 @@ HiChat.prototype = {
     bgContainer.appendChild(docFragment);
   },
 
-  initPanel: function (users) {
-    var content = '<ul id="ulSelf">me';
+  initPanel: function (users, socket) {
+    var content = '<ul id="ulOnline">';
     for (var i = 0; i < users.length; i++) {
-      content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
+      if (users[i].userId != this.userId)
+      //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
+        content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(' + socket + ');">' + users[i].nickname + '</li>';
     }
     content += '</ul>';
     $('#userPanel').html(content);
   }
+
 };
+
+function sendPrivateMsg(socket) {
+  socket.send("hello");
+}

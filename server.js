@@ -2,11 +2,12 @@
 var http = require("http");
 var express = require("express");
 
-app = express();
+var app = express();
 
-server = http.createServer(app);
-io = require("socket.io").listen(server);
-users = []; //for saving users' nickname
+var server = http.createServer(app);
+var io = require("socket.io").listen(server);
+var users = []; //for saving users' info
+var objSockets = {};
 
 app.use("/", express.static(__dirname + "/www"));
 server.listen(8080);
@@ -15,7 +16,6 @@ console.log("server started");
 
 //socket part
 io.on("connection", function (socket) {
-
   //set nickname
   socket.on("login", function (nickname) {
     var exsist = false;
@@ -34,21 +34,32 @@ io.on("connection", function (socket) {
       if (socket.iconIndex == undefined)
         socket.iconIndex = '0';
 
-      socket.userIndex = users.length;
+      //socket.userId = id++;
       //users.push(nickname);      
-      users.push({ "nickname": nickname, "iconIndex": socket.iconIndex });
+      users.push({ "userId": socket.id, "nickname": nickname, "iconIndex": socket.iconIndex });
       socket.nickname = nickname;
-      socket.emit("loginSuccess");
+      socket.emit("loginSuccess", socket.id);
       io.sockets.emit("system", nickname, users, "login"); //send nicknames to all users who current online
+
+      objSockets[socket.id] = socket;
+      console.log(objSockets);
     };
   });
 
   //left room
   socket.on('disconnect', function () {
     //delete user from usrs
-    users.splice(socket.userIndex, 1);
+    for (var i = 0; i < users.length; i++) {
+      if (users[i].userId == socket.id) {
+        users.splice(i, 1);
+        break;
+      }
+    }
+
+    delete objSockets[socket.id];
+
     //send message to all users except user who left room
-    socket.broadcast.emit('system', socket.nickname, users.length, 'logout');
+    socket.broadcast.emit('system', socket.nickname, users, socket.id, 'logout');
   });
 
   //get message sent by user
@@ -67,6 +78,11 @@ io.on("connection", function (socket) {
   //icon
   socket.on('selectIcon', function (iconIndex) {
     socket.iconIndex = iconIndex;
+  });
+
+  //test
+  socket.on('message', function (msg) {
+    console.log(msg);
   });
 
 });
