@@ -45,6 +45,7 @@ HiChat.prototype = {
     this.socket.on('loginSuccess', function (userId) {
       document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
       document.getElementById('loginWrapper').style.display = 'none';
+      document.getElementById('bottomBar').style.display = 'block';
       document.getElementById('messageInput').focus();
       that.userId = userId;
     });
@@ -67,7 +68,7 @@ HiChat.prototype = {
       var userCount = users.length;
       var msg = nickName + (type == 'login' ? ' joined' : ' left');
 
-      that.displayNewMsg('system', msg, "red");
+      that.displayNewMsg('system', msg, 'red', null, 'historyMsg');
 
       //show x number
       document.getElementById('status').textContent = userCount + (userCount > 1 ? ' users' : ' user') + ' online';
@@ -89,9 +90,8 @@ HiChat.prototype = {
 
     //show broadcasted message
     this.socket.on('newMsg', function (user, msg, color, iconIndex) {
-      that.displayNewMsg(user, msg, color, iconIndex);
+      that.displayNewMsg(user, msg, color, iconIndex, 'historyMsg');
     });
-
 
     document.getElementById('sendImage').addEventListener('change', function () {
       //check whether file selected
@@ -100,7 +100,7 @@ HiChat.prototype = {
         var file = this.files[0],
              reader = new FileReader();
         if (!reader) {
-          that.displayNewMsg('system', 'your browser doesn\'t support fileReader!!', 'red');
+          that.displayNewMsg('system', 'your browser doesn\'t support fileReader!!', 'red', 'historyMsg');
           this.value = '';
           return;
         };
@@ -117,6 +117,21 @@ HiChat.prototype = {
     //show image
     this.socket.on('newImg', function (user, img) {
       that.displayImage(user, img);
+    });
+
+    //get private msg
+    this.socket.on('newPrivateMsg', function (id, user, msg, iconIndex) {
+
+      //      that.createWindow(id, '../content/headIcon/' + iconIndex + '.gif', false);
+      //      //listen private send click
+      //      document.getElementById('subSend_' + id).addEventListener('click', function () {
+      //        var subMsg = $('#subInput_' + id).val();
+      //        if (subMsg.trim().length > 0)
+      //          that.socket.emit('postPrivateMsg', subMsg, id);
+      //      });
+      if ($('#subWrapper_' + id).length > 0) {
+        that.displayNewMsg(user, msg, 'black', iconIndex, 'subMessage_' + id);
+      }
     });
 
     //show emoji panel
@@ -184,32 +199,40 @@ HiChat.prototype = {
 
     //add panel click
     document.getElementById('userPanel').addEventListener('dblclick', function (e) {
-        //get selected head
-        var target = e.target;
-        if (target.nodeName.toLowerCase() == 'img') {
-            that.createWindow(target.name, target.src);
+      //get selected head
+      var target = e.target;
+      if (target.nodeName.toLowerCase() == 'img') {
+        that.createWindow(target.name, target.src, true);
 
+        //listen private send click
+        document.getElementById('subSend_' + target.name).addEventListener('click', function () {
+          var msg = $('#subInput_' + target.name).val();
+          if (msg.trim().length > 0) {
+            that.socket.emit('postPrivateMsg', msg, target.name);
+            $('subInput_' + target.name).val('').focus();
+          }
+        });
 
-            //that.socket.emit('test', that.userId, target.name);
-        };
+        //listen minimize click
+        document.getElementById('subMinimize_' + target.name).addEventListener('click', function () {
+          $('#subWrapper_' + target.name).hide();
+        });
+
+        //listen sub window close click
+        document.getElementById('subClose_' + target.name).addEventListener('click', function () {
+          $('#subWrapper_' + target.name).remove();
+        });
+      };
     }, false);
 
-    $('.draggable').draggable();
-    $('#btnPanel').click(function () {
-      $('.draggable').toggle(500, function () {
-        if ($('.draggable').css('display') == 'none')
-          $('#btnPanel').val('show panel');
-        else
-          $('#btnPanel').val('hide panel');
-      });
-
-    });
+    //bind panel
+    that.bindPanel();
 
   },
 
   //show message
-  displayNewMsg: function (user, msg, color, iconIndex) {
-    var container = document.getElementById('historyMsg'),
+  displayNewMsg: function (user, msg, color, iconIndex, placeId) {
+    var container = document.getElementById(placeId),
          msgToDisplay = document.createElement('p'),
          date = new Date().toTimeString().substr(0, 8),
     //change to image
@@ -303,24 +326,28 @@ HiChat.prototype = {
   initPanel: function (users, socket) {
     var content = '<ul id="ulOnline">';
     for (var i = 0; i < users.length; i++) {
-        if (users[i].userId != this.userId)
-            //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
-            content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
+      if (users[i].userId != this.userId)
+      //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
+        content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
     }
     content += '</ul>';
     $('#userPanel').html(content);
   },
 
-  createWindow: function (id, imgSrc) {
-      if ($('#' + id).length == 0) {
-          $('body').append('<div id="' + id + '" class="subWin"><div id="subHeader"><img src="' + imgSrc + '" width="50" height="50"/></div><div id="subMessage"></div><div id="divSend"><textarea id="privateInput"/><br><input id="subSend" type="button" value="send"/></div></div>');
-          $('#' + id).draggable();
-      }
+  createWindow: function (id, imgSrc, show) {
+    if ($('#subWrapper_' + id).length == 0) {
+      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/><span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div><div><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div></div>');
+      $('#subWrapper_' + id).draggable();
+    }
+    if (show)
+      $('#subWrapper_' + id).show();
+  },
+
+  bindPanel: function () {
+    $('#userPanel').draggable();
+    $('#panelTrigger').click(function () {
+      $('#userPanel').fadeToggle(500);
+    });
   }
 
 };
-
-//function sendPrivateMsg() {
-//    //socket.send("hello");
-//    socket.emit("test", "hello world!!!");
-//}

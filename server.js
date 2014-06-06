@@ -80,9 +80,10 @@ io.on("connection", function (socket) {
   });
 
   //test
-  socket.on('test', function (fromId,toId) {
-      console.log("from:" + fromId);
-      console.log("to:" + toId);
+  socket.on('postPrivateMsg', function (msg, destId) {
+    //objSockets[destId].emit('newPrivateMsg', socket.id, socket.nickname, msg, socket.iconIndex);
+    (objSockets[destId]).emit('newPrivateMsg', socket.id, socket.nickname, msg, socket.iconIndex);
+    socket.emit('newPrivateMsg', (objSockets[destId]).id, socket.nickname, msg, socket.iconIndex);
   });
 
 });
