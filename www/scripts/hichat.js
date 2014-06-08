@@ -14,6 +14,7 @@ window.onload = function () {
 var HiChat = function () {
   this.socket = null;
   this.userId = '';
+  this.timeOutId = 0;
 };
 
 //function HiChat() { 
@@ -84,7 +85,6 @@ HiChat.prototype = {
       messageInput.focus();
       if (msg.trim().length != 0) {
         that.socket.emit('postMsg', msg, color); //send message to server
-        //that.displayNewMsg('me', msg, color);   //show message for myself
       };
     }, false);
 
@@ -121,17 +121,12 @@ HiChat.prototype = {
 
     //get private msg
     this.socket.on('newPrivateMsg', function (id, user, msg, iconIndex) {
+        that.createWindow(id, '../content/headIcon/' + iconIndex + '.gif', false);
+        that.displayNewMsg(user, msg, 'black', null, 'subMessage_' + id);
 
-      //      that.createWindow(id, '../content/headIcon/' + iconIndex + '.gif', false);
-      //      //listen private send click
-      //      document.getElementById('subSend_' + id).addEventListener('click', function () {
-      //        var subMsg = $('#subInput_' + id).val();
-      //        if (subMsg.trim().length > 0)
-      //          that.socket.emit('postPrivateMsg', subMsg, id);
-      //      });
-      if ($('#subWrapper_' + id).length > 0) {
-        that.displayNewMsg(user, msg, 'black', iconIndex, 'subMessage_' + id);
-      }
+        if ($('#subWrapper_' + id).css('display') == 'none') {
+            that.imgJump(id, 250);
+        }
     });
 
     //show emoji panel
@@ -238,7 +233,7 @@ HiChat.prototype = {
     //change to image
          msg = this.showEmoji(msg);
     msgToDisplay.style.color = color || '#000';
-    if (iconIndex != undefined)
+    if (iconIndex != null)
       msgToDisplay.innerHTML = '<img src="../content/headIcon/' + iconIndex + '.gif" style="width:40px;height:40px;">' + user + '<span class="timespan">(' + date + '): </span>' + msg;
     else
       msgToDisplay.innerHTML = user + '<span class="timespan">(' + date + '): </span>' + msg;
@@ -328,7 +323,7 @@ HiChat.prototype = {
     for (var i = 0; i < users.length; i++) {
       if (users[i].userId != this.userId)
       //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
-        content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;">' + users[i].nickname + '</li>';
+        content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif">' + users[i].nickname + '</li>';
     }
     content += '</ul>';
     $('#userPanel').html(content);
@@ -348,6 +343,22 @@ HiChat.prototype = {
     $('#panelTrigger').click(function () {
       $('#userPanel').fadeToggle(500);
     });
+  },
+
+  imgJump: function (name, interval) {
+      this.timeOutId = setTimeout(function () {
+          $('img[name=' + name + ']').removeClass().addClass('up');
+          this.timeOutId = setTimeout(function () {
+              $('img[name=' + name + ']').removeClass();
+              this.timeOutId = setTimeout(function () {
+                  $('img[name=' + name + ']').removeClass().addClass('down');
+                  this.timeOutId = setTimeout(function () {
+                      $('img[name=' + name + ']').removeClass();
+                      HiChat.prototype.imgJump(name, interval);
+                  }, interval);
+              }, interval);
+          }, interval);
+      }, interval);
   }
 
 };

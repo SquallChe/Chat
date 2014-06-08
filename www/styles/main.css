@@ -223,3 +223,20 @@ li
   font-size: 15px;
   font-weight: bold;
 }
+
+#ulOnline li img
+{
+  width:40px;
+  height:40px;
+  cursor:pointer;
+}
+
+#ulOnline li img.up 
+{
+  margin-top:-2px;
+}
+
+#ulOnline li img.down 
+{
+  margin-top:3px;
+}
