@@ -1,3 +1,5 @@
+var timeOutId = -1;
+
 window.onload = function () {
   var hichat = new HiChat();
   hichat.init();
@@ -14,7 +16,8 @@ window.onload = function () {
 var HiChat = function () {
   this.socket = null;
   this.userId = '';
-  this.timeOutId = 0;
+  this.iconIndex = -1;
+  //this.timeOutId = -1;
 };
 
 //function HiChat() { 
@@ -43,12 +46,13 @@ HiChat.prototype = {
     });
 
     //success
-    this.socket.on('loginSuccess', function (userId) {
+    this.socket.on('loginSuccess', function (userId, iconIndex) {
       document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
       document.getElementById('loginWrapper').style.display = 'none';
       document.getElementById('bottomBar').style.display = 'block';
       document.getElementById('messageInput').focus();
       that.userId = userId;
+      that.iconIndex = iconIndex;
     });
 
     //set confirm button for nickname
@@ -73,7 +77,7 @@ HiChat.prototype = {
 
       //show x number
       document.getElementById('status').textContent = userCount + (userCount > 1 ? ' users' : ' user') + ' online';
-      that.initPanel(users, that.socket);
+      that.initPanel(users, nickName);
     });
 
     //send message
@@ -121,12 +125,12 @@ HiChat.prototype = {
 
     //get private msg
     this.socket.on('newPrivateMsg', function (id, user, msg, iconIndex) {
-        that.createWindow(id, '../content/headIcon/' + iconIndex + '.gif', false);
-        that.displayNewMsg(user, msg, 'black', null, 'subMessage_' + id);
+      that.createWindow(id, user, '../content/headIcon/' + iconIndex + '.gif', false);
+      that.displayNewMsg(user, msg, 'black', null, 'subMessage_' + id);
 
-        if ($('#subWrapper_' + id).css('display') == 'none') {
-            that.imgJump(id, 250);
-        }
+      if ($('#subWrapper_' + id).css('display') == 'none') {
+        that.imgJump(id, 250);
+      }
     });
 
     //show emoji panel
@@ -197,14 +201,21 @@ HiChat.prototype = {
       //get selected head
       var target = e.target;
       if (target.nodeName.toLowerCase() == 'img') {
-        that.createWindow(target.name, target.src, true);
+
+        //stop jumped image
+        if (timeOutId > -1) {
+          clearTimeout(timeOutId);
+          $('img[name=' + target.name + ']').removeClass();
+        }
+        //create sub window
+        that.createWindow(target.name, target.title, target.src, true);
 
         //listen private send click
         document.getElementById('subSend_' + target.name).addEventListener('click', function () {
           var msg = $('#subInput_' + target.name).val();
           if (msg.trim().length > 0) {
+            $('#subInput_' + target.name).val('').focus();
             that.socket.emit('postPrivateMsg', msg, target.name);
-            $('subInput_' + target.name).val('').focus();
           }
         });
 
@@ -269,7 +280,7 @@ HiChat.prototype = {
   initialHeadIcon: function () {
     var iconContainer = document.getElementById('headIcon'),
         docFragment = document.createDocumentFragment();
-    for (var i = 7; i > 0; i--) {
+    for (var i = 0; i > 0; i--) {
       var iconItem = document.createElement('img');
       iconItem.src = '../content/headIcon/' + i + '.gif';
       iconItem.title = i;
@@ -318,20 +329,20 @@ HiChat.prototype = {
     bgContainer.appendChild(docFragment);
   },
 
-  initPanel: function (users, socket) {
-    var content = '<ul id="ulOnline">';
+  initPanel: function (users, nickname) {
+    var content = '<div class="header"><img src="../content/headIcon/' + this.iconIndex + '.gif" class="icon">' + nickname + '<span id="panelMinimize">-</span></div><ul id="ulOnline">';
     for (var i = 0; i < users.length; i++) {
       if (users[i].userId != this.userId)
       //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
-        content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif">' + users[i].nickname + '</li>';
+        content += '<li><img name="' + users[i].userId + '" src="../content/headIcon/' + users[i].iconIndex + '.gif" title="' + users[i].nickname + '">' + users[i].nickname + '</li>';
     }
     content += '</ul>';
     $('#userPanel').html(content);
   },
 
-  createWindow: function (id, imgSrc, show) {
+  createWindow: function (id, nickname, imgSrc, show) {
     if ($('#subWrapper_' + id).length == 0) {
-      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/><span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div><div><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div></div>');
+      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/> ' + nickname + '<span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div></div><div class="footer"><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div>');
       $('#subWrapper_' + id).draggable();
     }
     if (show)
@@ -340,25 +351,28 @@ HiChat.prototype = {
 
   bindPanel: function () {
     $('#userPanel').draggable();
+    $(document).on('click', '#panelMinimize', function () {
+      $('#userPanel').hide();
+    });
     $('#panelTrigger').click(function () {
       $('#userPanel').fadeToggle(500);
     });
   },
 
   imgJump: function (name, interval) {
-      this.timeOutId = setTimeout(function () {
-          $('img[name=' + name + ']').removeClass().addClass('up');
-          this.timeOutId = setTimeout(function () {
-              $('img[name=' + name + ']').removeClass();
-              this.timeOutId = setTimeout(function () {
-                  $('img[name=' + name + ']').removeClass().addClass('down');
-                  this.timeOutId = setTimeout(function () {
-                      $('img[name=' + name + ']').removeClass();
-                      HiChat.prototype.imgJump(name, interval);
-                  }, interval);
-              }, interval);
+    timeOutId = setTimeout(function () {
+      $('img[name=' + name + ']').removeClass().addClass('up');
+      timeOutId = setTimeout(function () {
+        $('img[name=' + name + ']').removeClass();
+        timeOutId = setTimeout(function () {
+          $('img[name=' + name + ']').removeClass().addClass('down');
+          timeOutId = setTimeout(function () {
+            $('img[name=' + name + ']').removeClass();
+            HiChat.prototype.imgJump(name, interval);
           }, interval);
+        }, interval);
       }, interval);
+    }, interval);
   }
 
 };

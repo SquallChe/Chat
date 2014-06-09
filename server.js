@@ -38,7 +38,7 @@ io.on("connection", function (socket) {
       //users.push(nickname);      
       users.push({ "userId": socket.id, "nickname": nickname, "iconIndex": socket.iconIndex });
       socket.nickname = nickname;
-      socket.emit("loginSuccess", socket.id);
+      socket.emit("loginSuccess", socket.id, socket.iconIndex);
       io.sockets.emit("system", nickname, users, "login"); //send nicknames to all users who current online
 
       objSockets[socket.id] = socket;
