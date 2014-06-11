@@ -1,15 +1,22 @@
 var timeOutId = -1;
+var twinkleId = -1;
 
 window.onload = function () {
   var hichat = new HiChat();
   hichat.init();
-  
-  window.onkeypress = function () {
-    if (window.event.keyCode == 13) {
-      document.getElementById("sendBtn").click();
-      return false;
-    }
-  }
+
+//  window.onkeypress = function () {
+//    if (window.event.keyCode == 13) {
+//      var isFocus = $("#messageInput").is(":focus");
+//      if (isFocus == true) {
+//        document.getElementById("sendBtn").click();
+//        return false;
+//      }
+//      else { 
+//        
+//      }
+//    }
+//  }
 };
 
 //definate chat class
@@ -17,6 +24,7 @@ var HiChat = function () {
   this.socket = null;
   this.userId = '';
   this.iconIndex = -1;
+  this.nickname = '';
   //this.timeOutId = -1;
 };
 
@@ -46,13 +54,14 @@ HiChat.prototype = {
     });
 
     //success
-    this.socket.on('loginSuccess', function (userId, iconIndex) {
+    this.socket.on('loginSuccess', function (userId, iconIndex, nickname) {
       document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
       document.getElementById('loginWrapper').style.display = 'none';
       document.getElementById('bottomBar').style.display = 'block';
       document.getElementById('messageInput').focus();
       that.userId = userId;
       that.iconIndex = iconIndex;
+      that.nickname = nickname;
     });
 
     //set confirm button for nickname
@@ -92,6 +101,18 @@ HiChat.prototype = {
       };
     }, false);
 
+    //bind enter to public chat
+    document.getElementById('messageInput').addEventListener('keydown', function (e) {
+      if (e.keyCode == 13) {
+        var value = $('#messageInput').val();
+        if (value.trim() != '') {
+          document.getElementById('sendBtn').click();
+          event.returnValue = false;
+          if (event.preventDefault) event.preventDefault();
+        }
+      }
+    });
+
     //show broadcasted message
     this.socket.on('newMsg', function (user, msg, color, iconIndex) {
       that.displayNewMsg(user, msg, color, iconIndex, 'historyMsg');
@@ -126,10 +147,14 @@ HiChat.prototype = {
     //get private msg
     this.socket.on('newPrivateMsg', function (id, user, msg, iconIndex) {
       that.createWindow(id, user, '../content/headIcon/' + iconIndex + '.gif', false);
-      that.displayNewMsg(user, msg, 'black', null, 'subMessage_' + id);
+      that.displayPrivateMsg(user, msg, 'subMessage_' + id);
 
       if ($('#subWrapper_' + id).css('display') == 'none') {
-        that.imgJump(id, 250);
+        if ($('#taskImgWrapper_' + id).length == 0)
+          that.imgJump(id, 250);
+        else
+        //$('#taskImgWrapper_' + id).addClass('twinkle');
+          that.barBgTwinkle(id, 500);
       }
     });
 
@@ -202,32 +227,49 @@ HiChat.prototype = {
       var target = e.target;
       if (target.nodeName.toLowerCase() == 'img') {
 
-        //stop jumped image
-        if (timeOutId > -1) {
-          clearTimeout(timeOutId);
-          $('img[name=' + target.name + ']').removeClass();
-        }
-        //create sub window
-        that.createWindow(target.name, target.title, target.src, true);
-
-        //listen private send click
-        document.getElementById('subSend_' + target.name).addEventListener('click', function () {
-          var msg = $('#subInput_' + target.name).val();
-          if (msg.trim().length > 0) {
-            $('#subInput_' + target.name).val('').focus();
-            that.socket.emit('postPrivateMsg', msg, target.name);
+        if (target.name != "") {
+          //stop jumped image
+          if (timeOutId > -1) {
+            clearTimeout(timeOutId);
+            $('img[name=' + target.name + ']').removeClass();
           }
-        });
+          //create sub window
+          that.createWindow(target.name, target.title, target.src, true);
 
-        //listen minimize click
-        document.getElementById('subMinimize_' + target.name).addEventListener('click', function () {
-          $('#subWrapper_' + target.name).hide();
-        });
+          //listen private send click
+          document.getElementById('subSend_' + target.name).addEventListener('click', function () {
+            var msg = $('#subInput_' + target.name).val();
+            if (msg.trim().length > 0) {
+              $('#subInput_' + target.name).val('').focus();
+              that.socket.emit('postPrivateMsg', msg, target.name);
+            }
+          });
 
-        //listen sub window close click
-        document.getElementById('subClose_' + target.name).addEventListener('click', function () {
-          $('#subWrapper_' + target.name).remove();
-        });
+          //listen minimize click
+          document.getElementById('subMinimize_' + target.name).addEventListener('click', function () {
+            $('#subWrapper_' + target.name).hide();
+          });
+
+          //listen sub window close click
+          document.getElementById('subClose_' + target.name).addEventListener('click', function () {
+            $('#subWrapper_' + target.name).remove();
+            $('#taskImgWrapper_' + target.name).remove();
+          });
+
+          document.getElementById('subInput_' + target.name).addEventListener('keydown', function (e) {
+            if (e.keyCode == 13) {
+              var value = $('#subInput_' + target.name).val();
+              if (value.trim() != '') {
+                document.getElementById('subSend_' + target.name).click();
+                event.returnValue = false;
+                if (event.preventDefault) event.preventDefault();
+              }
+            }
+          });
+
+          that.addIconToBottom(target.name, target.src);
+
+        }
       };
     }, false);
 
@@ -263,6 +305,27 @@ HiChat.prototype = {
     container.scrollTop = container.scrollHeight;
   },
 
+  //show message
+  displayPrivateMsg: function (nickname, msg, placeId) {
+    //    var container = document.getElementById(placeId),
+    //         msgToDisplay = document.createElement('p'),
+    //         date = new Date().toTimeString().substr(0, 8),
+    //    //change to image
+    //         msg = this.showEmoji(msg);
+    //    msgToDisplay.style.color = color || '#000';
+    //    if (iconIndex != null)
+    //      msgToDisplay.innerHTML = '<img src="../content/headIcon/' + iconIndex + '.gif" style="width:40px;height:40px;">' + user + '<span class="timespan">(' + date + '): </span>' + msg;
+    //    else
+    //    container.appendChild(msgToDisplay);
+    //    container.scrollTop = container.scrollHeight;
+    var container = document.getElementById(placeId);
+    var date = new Date();
+    var content = '<dl><dt>' + nickname + ' ' + date.getFullYear() + '-' + date.getMonth() + '-' + date.getDay() + ' ' + date.toTimeString().substring(0, 8) + '</dt>'
+                + '<dd>' + msg + '</dd></dl>';
+    $('#' + placeId).append(content);
+    container.scrollTop = container.scrollHeight;
+  },
+
   //initialize emoji
   initialEmoji: function () {
     var emojiContainer = document.getElementById('emojiWrapper'),
@@ -280,7 +343,7 @@ HiChat.prototype = {
   initialHeadIcon: function () {
     var iconContainer = document.getElementById('headIcon'),
         docFragment = document.createDocumentFragment();
-    for (var i = 0; i > 0; i--) {
+    for (var i = 7; i > 0; i--) {
       var iconItem = document.createElement('img');
       iconItem.src = '../content/headIcon/' + i + '.gif';
       iconItem.title = i;
@@ -330,7 +393,7 @@ HiChat.prototype = {
   },
 
   initPanel: function (users, nickname) {
-    var content = '<div class="header"><img src="../content/headIcon/' + this.iconIndex + '.gif" class="icon">' + nickname + '<span id="panelMinimize">-</span></div><ul id="ulOnline">';
+    var content = '<div class="header"><img src="../content/headIcon/' + this.iconIndex + '.gif" class="icon">' + this.nickname + '<span id="panelMinimize">-</span></div><ul id="ulOnline">';
     for (var i = 0; i < users.length; i++) {
       if (users[i].userId != this.userId)
       //content += '<li><img src="../content/headIcon/' + users[i].iconIndex + '.gif" style="width:40px;height:40px;" ondblclick="sendPrivateMsg(\'' + this.userId + '\',\'' + users[i].userId + '\',' + socket + ');">' + users[i].nickname + '</li>';
@@ -373,6 +436,27 @@ HiChat.prototype = {
         }, interval);
       }, interval);
     }, interval);
+  },
+
+  barBgTwinkle: function (id, interval) {
+    twinkleId = setTimeout(function () {
+      $('#taskImgWrapper_' + id).addClass('twinkle');
+      twinkleId = setTimeout(function () {
+        $('#taskImgWrapper_' + id).removeClass('twinkle');
+        twinkleId = HiChat.prototype.barBgTwinkle(id, interval);
+      }, interval);
+    }, interval);
+  },
+
+  addIconToBottom: function (userId, imgSrc) {
+    if ($('#img_' + userId).length == 0) {
+      var icon = '<div id="taskImgWrapper_' + userId + '" class="imgWrapper"><img id="img_' + userId + '" src="' + imgSrc + '" /></div>';
+      $('#bottomBar').append(icon);
+
+      $('#img_' + userId).click(function () {
+        $('#subWrapper_' + userId).toggle();
+      });
+    }
   }
 
 };
