@@ -10,7 +10,7 @@ var users = []; //for saving users' info
 var objSockets = {};
 
 app.use("/", express.static(__dirname + "/www"));
-server.listen(8080);
+server.listen(3000);
 
 console.log("server started");
 

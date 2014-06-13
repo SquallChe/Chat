@@ -4,19 +4,6 @@ var twinkleId = -1;
 window.onload = function () {
   var hichat = new HiChat();
   hichat.init();
-
-//  window.onkeypress = function () {
-//    if (window.event.keyCode == 13) {
-//      var isFocus = $("#messageInput").is(":focus");
-//      if (isFocus == true) {
-//        document.getElementById("sendBtn").click();
-//        return false;
-//      }
-//      else { 
-//        
-//      }
-//    }
-//  }
 };
 
 //definate chat class
@@ -150,11 +137,18 @@ HiChat.prototype = {
       that.displayPrivateMsg(user, msg, 'subMessage_' + id);
 
       if ($('#subWrapper_' + id).css('display') == 'none') {
-        if ($('#taskImgWrapper_' + id).length == 0)
-          that.imgJump(id, 250);
-        else
-        //$('#taskImgWrapper_' + id).addClass('twinkle');
-          that.barBgTwinkle(id, 500);
+        if ($('#taskImgWrapper_' + id).length == 0) {
+          if(!$('img[name=' + id + ']').hasClass('jump')) {
+            $('img[name=' + id + ']').addClass('jump');
+            that.imgJump(id, 250); 
+          }
+        }
+        else {
+          if(!$('#taskImgWrapper_' + id).hasClass('twinkling')) {
+            $('#taskImgWrapper_' + id).addClass('twinkling');
+            that.barBgTwinkle(id, 500);  
+          }
+        }
       }
     });
 
@@ -222,7 +216,7 @@ HiChat.prototype = {
     }, false);
 
     //add panel click
-    document.getElementById('userPanel').addEventListener('dblclick', function (e) {
+    document.getElementById('userPanel').addEventListener('click', function (e) {
       //get selected head
       var target = e.target;
       if (target.nodeName.toLowerCase() == 'img') {
@@ -267,7 +261,7 @@ HiChat.prototype = {
             }
           });
 
-          that.addIconToBottom(target.name, target.src);
+          that.addIconToBottom(target.name, target.src, target.title);
 
         }
       };
@@ -305,22 +299,12 @@ HiChat.prototype = {
     container.scrollTop = container.scrollHeight;
   },
 
-  //show message
+  //show private message
   displayPrivateMsg: function (nickname, msg, placeId) {
-    //    var container = document.getElementById(placeId),
-    //         msgToDisplay = document.createElement('p'),
-    //         date = new Date().toTimeString().substr(0, 8),
-    //    //change to image
-    //         msg = this.showEmoji(msg);
-    //    msgToDisplay.style.color = color || '#000';
-    //    if (iconIndex != null)
-    //      msgToDisplay.innerHTML = '<img src="../content/headIcon/' + iconIndex + '.gif" style="width:40px;height:40px;">' + user + '<span class="timespan">(' + date + '): </span>' + msg;
-    //    else
-    //    container.appendChild(msgToDisplay);
-    //    container.scrollTop = container.scrollHeight;
-    var container = document.getElementById(placeId);
-    var date = new Date();
-    var content = '<dl><dt>' + nickname + ' ' + date.getFullYear() + '-' + date.getMonth() + '-' + date.getDay() + ' ' + date.toTimeString().substring(0, 8) + '</dt>'
+    var container = document.getElementById(placeId),
+        date = new Date(),
+        titleClass = nickname == this.nickname ? "yourSelf" : "theOther",
+        content = '<dl><dt class="' + titleClass + '">' + nickname + ' ' + date.getFullYear() + '-' + date.getMonth() + '-' + date.getDay() + ' ' + date.toTimeString().substring(0, 8) + '</dt>'
                 + '<dd>' + msg + '</dd></dl>';
     $('#' + placeId).append(content);
     container.scrollTop = container.scrollHeight;
@@ -405,7 +389,7 @@ HiChat.prototype = {
 
   createWindow: function (id, nickname, imgSrc, show) {
     if ($('#subWrapper_' + id).length == 0) {
-      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/> ' + nickname + '<span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div></div><div class="footer"><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div>');
+      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/> ' + nickname + '<span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div class="subToolBar"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div></div><div class="footer"><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div>');
       $('#subWrapper_' + id).draggable();
     }
     if (show)
@@ -424,13 +408,13 @@ HiChat.prototype = {
 
   imgJump: function (name, interval) {
     timeOutId = setTimeout(function () {
-      $('img[name=' + name + ']').removeClass().addClass('up');
+      $('img[name=' + name + ']').addClass('up');
       timeOutId = setTimeout(function () {
-        $('img[name=' + name + ']').removeClass();
+        $('img[name=' + name + ']').removeClass('up');
         timeOutId = setTimeout(function () {
-          $('img[name=' + name + ']').removeClass().addClass('down');
+          $('img[name=' + name + ']').addClass('down');
           timeOutId = setTimeout(function () {
-            $('img[name=' + name + ']').removeClass();
+            $('img[name=' + name + ']').removeClass('down');
             HiChat.prototype.imgJump(name, interval);
           }, interval);
         }, interval);
@@ -448,12 +432,14 @@ HiChat.prototype = {
     }, interval);
   },
 
-  addIconToBottom: function (userId, imgSrc) {
+  addIconToBottom: function (userId, imgSrc, nickname) {
     if ($('#img_' + userId).length == 0) {
-      var icon = '<div id="taskImgWrapper_' + userId + '" class="imgWrapper"><img id="img_' + userId + '" src="' + imgSrc + '" /></div>';
+      var icon = '<div id="taskImgWrapper_' + userId + '" class="imgWrapper"><img id="img_' + userId + '" src="' + imgSrc + '" /><span>' + nickname + '</span></div>';
       $('#bottomBar').append(icon);
 
       $('#img_' + userId).click(function () {
+        clearTimeout(twinkleId);
+        $('#taskImgWrapper_' + userId).removeClass('twinkling twinkle');
         $('#subWrapper_' + userId).toggle();
       });
     }
