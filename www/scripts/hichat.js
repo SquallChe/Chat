@@ -42,7 +42,7 @@ HiChat.prototype = {
 
     //success
     this.socket.on('loginSuccess', function (userId, iconIndex, nickname) {
-      document.title = 'hichat | ' + document.getElementById('nicknameInput').value;
+      document.title = 'enjoy it';
       document.getElementById('loginWrapper').style.display = 'none';
       document.getElementById('bottomBar').style.display = 'block';
       document.getElementById('messageInput').focus();
@@ -140,12 +140,14 @@ HiChat.prototype = {
         if ($('#taskImgWrapper_' + id).length == 0) {
           if(!$('img[name=' + id + ']').hasClass('jump')) {
             $('img[name=' + id + ']').addClass('jump');
+            document.title = "new message!"
             that.imgJump(id, 250); 
           }
         }
         else {
           if(!$('#taskImgWrapper_' + id).hasClass('twinkling')) {
             $('#taskImgWrapper_' + id).addClass('twinkling');
+            document.title = "new message!"
             that.barBgTwinkle(id, 500);  
           }
         }
@@ -250,6 +252,7 @@ HiChat.prototype = {
             $('#taskImgWrapper_' + target.name).remove();
           });
 
+          //private enter key
           document.getElementById('subInput_' + target.name).addEventListener('keydown', function (e) {
             if (e.keyCode == 13) {
               var value = $('#subInput_' + target.name).val();
@@ -260,9 +263,18 @@ HiChat.prototype = {
               }
             }
           });
+          
+          document.getElementById('barVideo_' + target.name).addEventListener('click',function () {
+            var iframeHtml = '<iframe id="iVideo" src="video.html" frameborder="0" width="100%" height="100%"></iframe>';
+            $('#subVideo_' + target.name).html(iframeHtml);
+            $('#subWrapper_' + target.name).css('width','550px');
+            $('#subVideo_' + target.name).show();
+          });
 
           that.addIconToBottom(target.name, target.src, target.title);
-
+          if(!$('img').hasClass('jump')) {
+            document.title = 'enjoy it';
+          }
         }
       };
     }, false);
@@ -389,7 +401,7 @@ HiChat.prototype = {
 
   createWindow: function (id, nickname, imgSrc, show) {
     if ($('#subWrapper_' + id).length == 0) {
-      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/> ' + nickname + '<span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div id="subMessage_' + id + '" class="subMessage"></div><div class="subToolBar"></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div></div><div class="footer"><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div>');
+      $('body').prepend('<div id="subWrapper_' + id + '" class="subWin"><div id="subHeader_' + id + '"><img src="' + imgSrc + '" class="icon"/> ' + nickname + '<span id="subClose_' + id + '">X</span><span id="subMinimize_' + id + '">-</span></div><div class="subChat"><div id="subMessage_' + id + '" class="subMessage"></div><div class="subToolBar"><img id="barVideo_'+ id + '" src="../content/images/video.png"/></div><div id="divInputArea_' + id + '"><div><textarea id="subInput_' + id + '" class="subInput"/></div></div><div class="footer"><input id="subSend_' + id + '" type="button" value="send" class="subSend"/></div></div><div id="subVideo_' + id + '" class="subVideo"></div></div>');
       $('#subWrapper_' + id).draggable();
     }
     if (show)
@@ -402,7 +414,7 @@ HiChat.prototype = {
       $('#userPanel').hide();
     });
     $('#panelTrigger').click(function () {
-      $('#userPanel').fadeToggle(500);
+      $('#userPanel').fadeToggle(200);
     });
   },
 
@@ -437,10 +449,11 @@ HiChat.prototype = {
       var icon = '<div id="taskImgWrapper_' + userId + '" class="imgWrapper"><img id="img_' + userId + '" src="' + imgSrc + '" /><span>' + nickname + '</span></div>';
       $('#bottomBar').append(icon);
 
-      $('#img_' + userId).click(function () {
+      $('#taskImgWrapper_' + userId).click(function () {
         clearTimeout(twinkleId);
         $('#taskImgWrapper_' + userId).removeClass('twinkling twinkle');
         $('#subWrapper_' + userId).toggle();
+        //if($)
       });
     }
   }
